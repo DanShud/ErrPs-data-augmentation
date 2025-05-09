@@ -8,6 +8,9 @@ import numpy as np
 
 BUFFER_SIZE = 60000
 BATCH_SIZE = 64
+EPOCHS = 300
+noise_dim = 100
+
 DATA_DIR = './'
 POS = False
 OUTPUT = './'
@@ -148,9 +151,6 @@ critic_optimizer = tf.keras.optimizers.Adam(1e-4)
 
 # ### Train utils
 
-EPOCHS = 50
-noise_dim = 100
-num_examples_to_generate = 16
 
 
 
@@ -208,6 +208,10 @@ def train(dataset, epochs):
 
         with open("gan_log.txt",'a') as f:
             f.write('Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start) + "\n")
+
+        generator.save(os.path.join(OUTPUT, "generator.keras"))
+        critic.save(os.path.join(OUTPUT, "critic.keras"))
+
 
 
   
