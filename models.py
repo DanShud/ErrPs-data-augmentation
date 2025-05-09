@@ -1,5 +1,8 @@
 from tensorflow.keras import layers, Model, Input
 import tensorflow as tf
+
+
+# models taken from paper
 def build_generator(latent_dim=100):
     input_latent = Input(shape=(latent_dim,), name="latent_input")
 
@@ -9,23 +12,30 @@ def build_generator(latent_dim=100):
 
     x = layers.Reshape((64, 4))(x)  
 
-    x = layers.Conv1D(8, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(10*4, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv1D(16, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(10*16, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv1D(32, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(10*64, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv1D(64, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(10*256, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv1D(103, kernel_size=4, padding='same', activation='tanh')(x)
+
+
+    x = layers.Conv2D(10*512, kernel_size=4, padding='same')(x)
+    x = layers.LeakyReLU()(x)
+    x = layers.BatchNormalization()(x)
+
+
+    x = layers.Conv2D(640, kernel_size=4, padding='same', activation='tanh')(x)
     x = layers.BatchNormalization()(x)
 
     generator = Model(inputs=input_latent, outputs=x, name="Generator")
@@ -33,29 +43,29 @@ def build_generator(latent_dim=100):
 
 
 def build_critic():
-    input_data = Input(shape=(64, 103), name="generated_or_real_input")
+    input_data = Input(shape=(10, 640), name="generated_or_real_input")
 
-    x = layers.Conv1D(4, kernel_size=4, padding='same')(input_data)
+    x = layers.Conv2D(10*4, kernel_size=4, padding='same')(input_data)
     x = layers.LeakyReLU()(x)
 
-    x = layers.Conv1D(8, kernel_size=4, padding='same')(x)
-    x = layers.LeakyReLU()(x)
-    x = layers.BatchNormalization()(x)
-
-    x = layers.Conv1D(16, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(10*16, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv1D(32, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(10*64, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv1D(64, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(10*256, kernel_size=4, padding='same')(x)
+    x = layers.LeakyReLU()(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv2D(10*512, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
     x = layers.Flatten()(x)  # Should be 64*64 = 4096
-    x = layers.Dense(103, activation='relu')(x)
+    x = layers.Dense(640, activation='relu')(x)
     output = layers.Dense(2, activation='softmax')(x)  # For classification if needed
 
     critic = Model(inputs=input_data, outputs=output, name="Critic")
