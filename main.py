@@ -39,7 +39,7 @@ def main():
     POS = arguments.pos
     OUTPUT = arguments.output
 
-    os.makedir(OUTPUT,exist_ok= True)
+    os.mkdir(OUTPUT,exist_ok= True)
 
     # change train set 
 
@@ -206,7 +206,7 @@ def train(dataset, epochs):
 
         print ('Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
 
-        with open("gan_log.txt",'a') as f:
+        with open(os.path.join(OUTPUT,"gan_log.txt"),'a+') as f:
             f.write('Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start) + "\n")
 
         generator.save(os.path.join(OUTPUT, "generator.keras"))
