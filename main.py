@@ -7,7 +7,7 @@ import time
 import numpy as np
 
 BUFFER_SIZE = 60000
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 EPOCHS = 300
 noise_dim = 100
 
@@ -31,15 +31,17 @@ def main():
                     description='Generate and train positive or negative gan models')
     # hey pretty, add argument for data, and wether it is gan for pos or neg data add output
     parser.add_argument('-d', '--data',)      # option that takes a value
-    parser.add_argument('-p', '--pos', action='store_true')      # option that takes a value
     parser.add_argument('-o', '--output')
+    parser.add_argument('-p', '--pos', action='store_true')      # option that takes a value
     
     arguments = parser.parse_args()
     DATA_DIR = arguments.data
     POS = arguments.pos
     OUTPUT = arguments.output
-
-    os.mkdir(OUTPUT,exist_ok= True)
+    
+    print(OUTPUT, DATA_DIR)
+    os.makedirs(OUTPUT,exist_ok= True)
+    print(OUTPUT, "exisits")
 
     # change train set 
 
