@@ -1,72 +1,67 @@
 from tensorflow.keras import layers, Model, Input
 import tensorflow as tf
 
+from tensorflow.keras import layers, Model
+from tensorflow.keras import Input
 
-# models taken from paper
 def build_generator(latent_dim=100):
     input_latent = Input(shape=(latent_dim,), name="latent_input")
 
-    x = layers.Dense(256)(input_latent)
+    x = layers.Dense(10*40*256)(input_latent)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Reshape((64, 4))(x)  
+    # Reshape to a small spatial dimension (10, 40, 1)
+    x = layers.Reshape((10, 40, 256))(x)
 
-    x = layers.Conv2D(10*4, kernel_size=4, padding='same')(x)
+    x = layers.Conv2DTranspose(128, kernel_size=4, strides = (1,2) ,padding='same')(x) 
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv2D(10*16, kernel_size=4, padding='same')(x)
+    x = layers.Conv2DTranspose(64, kernel_size=4, strides=(1,2),padding='same')(x) 
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv2DTranspose(32, kernel_size=4,strides=(1,2), padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv2D(10*64, kernel_size=4, padding='same')(x)
-    x = layers.LeakyReLU()(x)
-    x = layers.BatchNormalization()(x)
-
-    x = layers.Conv2D(10*256, kernel_size=4, padding='same')(x)
-    x = layers.LeakyReLU()(x)
-    x = layers.BatchNormalization()(x)
-
-
-
-    x = layers.Conv2D(10*512, kernel_size=4, padding='same')(x)
-    x = layers.LeakyReLU()(x)
-    x = layers.BatchNormalization()(x)
-
-
-    x = layers.Conv2D(640, kernel_size=4, padding='same', activation='tanh')(x)
+    x = layers.Conv2DTranspose(1 , kernel_size=4, strides=(1,2), padding='same', activation='tanh')(x)
     x = layers.BatchNormalization()(x)
 
     generator = Model(inputs=input_latent, outputs=x, name="Generator")
     return generator
 
-
 def build_critic():
-    input_data = Input(shape=(10, 640), name="generated_or_real_input")
+    input_data = Input(shape=(10, 640, 1), name="generated_or_real_input")
 
-    x = layers.Conv2D(10*4, kernel_size=4, padding='same')(input_data)
+    # Reduce the number of filters to save memory
+    x = layers.Conv2D(4, kernel_size=4, padding='same')(input_data)
     x = layers.LeakyReLU()(x)
 
-    x = layers.Conv2D(10*16, kernel_size=4, padding='same')(x)
-    x = layers.LeakyReLU()(x)
-    x = layers.BatchNormalization()(x)
-
-    x = layers.Conv2D(10*64, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(16, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv2D(10*256, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(64, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Conv2D(10*512, kernel_size=4, padding='same')(x)
+    x = layers.Conv2D(256, kernel_size=4, padding='same')(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.Flatten()(x)  # Should be 64*64 = 4096
-    x = layers.Dense(640, activation='relu')(x)
-    output = layers.Dense(2, activation='softmax')(x)  # For classification if needed
+    x = layers.Conv2D(512, kernel_size=4, padding='same')(x)
+    x = layers.LeakyReLU()(x)
+    x = layers.BatchNormalization()(x)
+
+    # Use Global Average Pooling to reduce memory usage
+    x = layers.GlobalAveragePooling2D()(x)
+
+    # Reduce Dense layer size
+    x = layers.Dense(256, activation='relu')(x)
+
+    # Output layer
+    output = layers.Dense(2, activation='softmax')(x)
 
     critic = Model(inputs=input_data, outputs=output, name="Critic")
     return critic
