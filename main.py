@@ -47,9 +47,9 @@ def main():
 
     # main functions : 
     build_tfdataset()    
-    neg_trian_dataset, pos_train_dataset = extract_datasets()
+    neg_train_dataset, pos_train_dataset = extract_datasets()
 
-    for i,l in neg_trian_dataset.take(1):
+    for i,l in neg_train_dataset.take(1):
         print(i)
 
     if POS:
