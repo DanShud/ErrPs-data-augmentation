@@ -1,6 +1,6 @@
 """
 This file contains a method that extract the features from the csv 
-files containing data
+files contatining voltages in the channels and and event markers.
 Author: Dan Shudrenko
 """
 

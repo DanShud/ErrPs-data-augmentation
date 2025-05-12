@@ -1,3 +1,10 @@
+"""
+This file contains the functions that build the default generator
+critic and classifier that are described in Gao et al. (2020)
+
+Author: Kai Britt
+"""
+
 from tensorflow.keras import layers, Model, Input
 import tensorflow as tf
 
