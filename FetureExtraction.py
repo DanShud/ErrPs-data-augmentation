@@ -6,6 +6,8 @@ Author: Dan Shudrenko
 
 import os 
 import numpy as np
+import argparse
+import pandas as pd
 
 FEATURES = os.path.join(".", "features")
 os.makedirs(FEATURES, exist_ok=True)
@@ -82,12 +84,35 @@ def featurize(data, events, n):
     file_path = os.path.join(FEATURES, "f_sub_" + str(n) + ".csv")
     np.savetxt(file_path, res, delimiter=',')
 
-
+def merge(path): 
+    """
+    This function merges the data so it can be used for testing and training
+    """
+    file_names = os.listdir(path)
+    pos = pd.DataFrame()
+    neg = pd.DataFrame()
+    for name in file_names: 
+        path_file = os.path.join(path, name)
+        ind = pd.read_csv(path_file)
+        p = ind[ind.iloc[:, 0] == 1]
+        n = ind[ind.iloc[:, 0] == 0]
+        pos = pd.concat([pos, p], axis = 0)
+        neg = pd.concat([neg, n], axis = 0)
+    file_path ="positive.csv"
+    pos.to_csv(index = False, header = False)
+    file_path = "negative.csv"
+    neg.to_csv(index = False, header = False)
 
 
 def main():
-    parse("../subject_data/subject_data", 92)
-
+    ##checking what we are running
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--experiment_type")
+    args = parser.parse_args()
+    if args.experiment_type == "featurize":
+        parse("../subject_data/subject_data", 92)
+    else: 
+        merge("./features")
 
 
 if __name__ == "__main__":
