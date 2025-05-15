@@ -2,65 +2,122 @@
 This file classiffies the original data and the data generated 
 by GAN and plots the performance on the data 
 
-Author: Dan Shudreno
 """
 
-from tensorflow.keras import layers, Model, Input
-import tensorflow as tf
-
-from tensorflow.keras import layers, Model
-from tensorflow.keras import Input
-import argparse
 import numpy as np
-import models
+import matplotlib.pyplot as plt
+
+import tensorflow as tf
+from tensorflow import keras
+from keras import layers
+from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
+
+from models import build_classifier
+
+import pandas as pd
+import os
+import argparse 
+import time
 
 
-def run_experimenet():
-    pass
+MODELS_PATH = os.path.join(".", "models")
+os.makedirs(MODELS_PATH, exist_ok=True)
+
+def run_experimenet(train_data, x_valid, y_valid, gan, epochs):
+    model = build_classifier()
+    model.compile(loss = "sparse_categorical_crossentropy", optimizer='adam', metrics = ["accuracy"] )
+    #Setting up the callback
+    checkpoint_filepath = os.path.join(MODELS_PATH, "checkpoint_" + gan + "_" +str(epochs))
+    model_checkpoint_callback = ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        monitor='val_loss',
+        mode='min',
+        save_best_only=True, 
+        save_format="keras"  
+    )
+    #training the model
+    history = model.fit(
+        train_data,
+        epochs = epochs,
+        validation_data=(x_valid, y_valid), 
+        callbacks = [model_checkpoint_callback]
+    )
+    #saving the model
+    path = os.path.join(MODELS_PATH, "final_" + gan + "_" + str(epochs)+ ".keras")
+    model.save(path)
+    
+    #saving models history
+    model_histories = pd.concat([
+        pd.Series(history.history["loss"], name = "Training Loss"),
+        pd.Series(history.history["val_loss"], name = "Validation Loss"),
+        pd.Series(history.history["accuracy"], name = "Training Accuracy"),
+        pd.Series(history.history["val_accuracy"], name = "Validation Accuracy") ], axis = 1)
+    
+    path = os.path.join(MODELS_PATH, "histories" + gan + str(epochs)+ ".csv")
+    model_histories.to_csv(path, index = True)
+
 
 def main():
+    #setting the path for the data
+    path_real = "./DATA/features/all_data.csv"
+    path_gan_p = "./DATA/generated_data/real_syn_data.csv"
+    path_gan_n = "./DATA/generated_data/neg_syn_data.csv"
     ##checking what we are running
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--experiment_type")
+    parser.add_argument("-g", "--gan", action="store_true")
+    parser.add_argument("-e", "--epochs", default=1)
     args = parser.parse_args()
-    # Since we only need images from the dataset to encode and decode, we
-    # won't use the labels.
-    train_data, test_data = 
-
-    # Normalize and reshape the data
-    train_data = preprocess(train_data)
-    test_data = preprocess(test_data)
-    #initializing the list of noises
-    noises = [0.1, 0.28, 0.46, 0.64, 0.82, 1]
+    epochs = int(args.epochs)
 
     if args.experiment_type == "train":
-        #intializing df to store the histories 
         model_histories = pd.DataFrame()
-        #training different models
-        for noise_f in noises: 
-            model_histories = model_train(train_data, test_data, noise_f, model_histories)
-        #saving the history
-        model_histories.to_csv("ahistories.csv", index = False)
+        #reading actual data and preprocessing it
+        data = np.loadtxt(path_real, delimiter=',')
+        np.random.seed(42)
+        np.random.shuffle(data)
+        size_train = int(data.shape[0] * 0.7)        
+        size_v = int(data.shape[0]*0.8) 
+        x_train_real = data[:size_train, 3:].reshape(-1, 10, 640, 1)
+        y_train_real = data[:size_train, 0]
+
+        x_valid = data[size_train:size_v, 3:].reshape(-1, 10, 640, 1)
+        y_valid = data[size_train:size_v, 0]
+
+        # Build tf.data.Dataset from real data
+        ds_real = tf.data.Dataset.from_tensor_slices((x_train_real, y_train_real))
+                
+        train_dataset = ds_real
+        if args.gan:
+            #load GAN data
+            x_gan_pos = np.loadtxt(path_gan_p, delimiter=',').reshape(-1, 10, 640, 1)
+            y_gan_pos = np.ones(x_gan_pos.shape[0])
+
+            x_gan_neg = np.loadtxt(path_gan_n, delimiter=',').reshape(-1, 10, 640, 1)
+            y_gan_neg = np.zeros(x_gan_neg.shape[0])
+
+            #convert GAN data to tf.data.Datasets
+            ds_gan_pos = tf.data.Dataset.from_tensor_slices((x_gan_pos, y_gan_pos))
+            ds_gan_neg = tf.data.Dataset.from_tensor_slices((x_gan_neg, y_gan_neg))
+
+            #merge all datasets
+            train_dataset = ds_real.concatenate(ds_gan_pos).concatenate(ds_gan_neg)
+            gan_label = "gan"
+        else:
+            train_dataset = ds_real
+            gan_label = "real"
+        
+        batch_size = 64
+
+        # After merging datasets
+        train_dataset = train_dataset.shuffle(1000).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+        run_experimenet(train_dataset, x_valid, y_valid, gan_label, epochs)
+    elif args.experiment_type == "process":
+        pass
     else: 
-        if args.experiment_type == "standard":
-            df = pd.read_csv("histories.csv")
-            plot_loss(df, "Training")
-            plot_loss(df, "Validation")
-        elif args.experiment_type == "fashion":
-            (train_data, _), (test_data, _) = fashion_mnist.load_data()
-        #for each type of noise dispaying the image
-        for noise_f in noises:
-            #getting the model
-            name = "model_" + str(noise_f)
-            path = os.path.join("./models", name + ".keras")
-            print(path)
-            autoencoder = load_model(path)
-            #making predictions
-            noisy_test_data = noise(test_data, noise_f)
-            predictions = autoencoder.predict(noisy_test_data)
-            display(noisy_test_data, predictions, args.experiment_type + " " + name)
-
-
+        pass
    
 
 if __name__ =="__main__":
