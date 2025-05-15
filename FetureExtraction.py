@@ -8,6 +8,7 @@ import os
 import numpy as np
 import argparse
 import pandas as pd
+# from memory_profiler import profile
 
 FEATURES = os.path.join(".", "features")
 os.makedirs(FEATURES, exist_ok=True)
@@ -84,6 +85,7 @@ def featurize(data, events, n):
     file_path = os.path.join(FEATURES, "f_sub_" + str(n) + ".csv")
     np.savetxt(file_path, res, delimiter=',')
 
+# @profile
 def merge(path): 
     """
     This function merges the data so it can be used for testing and training
@@ -112,6 +114,7 @@ def main():
     if args.experiment_type == "featurize":
         parse("../subject_data/subject_data", 92)
     else: 
+       
         merge("./features")
 
 

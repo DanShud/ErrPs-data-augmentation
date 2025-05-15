@@ -75,6 +75,7 @@ def build_critic():
 
 
 def build_classifier():
+    input_shape = (10, 640, 1)
     inputs = tf.keras.Input(shape=input_shape)
 
     x = layers.Conv2D(filters=4, kernel_size=(8, 4), activation='relu', padding='same')(inputs)
@@ -93,14 +94,14 @@ def build_classifier():
     x = layers.BatchNormalization()(x)
 
     
-    x = layers.MaxPooling2D(pool_size=(4, 1))(x)
+    x = layers.MaxPooling2D(pool_size=(4, 1), padding='same')(x)
 
     x = layers.Dropout(0.5)(x)
 
     x = layers.SeparableConv2D(filters=16, kernel_size=(4, 1), activation='relu', padding='same')(x)
     x = layers.BatchNormalization()(x)
 
-    x = layers.MaxPooling2D(pool_size=(8, 1))(x)
+    x = layers.MaxPooling2D(pool_size=(8, 1), padding='same')(x)
 
     x = layers.Dropout(0.5)(x)
 
