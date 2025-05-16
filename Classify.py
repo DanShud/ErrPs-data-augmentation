@@ -121,9 +121,9 @@ def plot_loss(name, title):
 
 def main():
     #setting the path for the data
-    path_real = "./DATA/features/all_data.csv"
-    path_gan_p = "./DATA/generated_data/real_syn_data.csv"
-    path_gan_n = "./DATA/generated_data/neg_syn_data.csv"
+    path_real = "/homes/dshudrenko/ML/ErrPs-data-augmentation/DATA/features/all_data.csv"
+    path_gan_p = "/homes/kbritt1/cs360/ErrPs-data-augmentation/DATA/generated_data/generated_data_pos.csv"
+    path_gan_n = "/homes/kbritt1/cs360/ErrPs-data-augmentation/DATA/generated_data/generated_data_neg.csv"
     ##checking what we are running
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--experiment_type")
