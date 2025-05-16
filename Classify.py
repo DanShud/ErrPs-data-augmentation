@@ -14,7 +14,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 from keras import regularizers
 
-from models import build_classifier
+# from models import build_classifier
 
 import pandas as pd
 import os
@@ -28,45 +28,44 @@ IMAGE_PATH = os.path.join(".", "images")
 os.makedirs(IMAGE_PATH, exist_ok = True)
 
 
+def build_classifier():
+    input_shape = (10, 640, 1)
+    inputs = tf.keras.Input(shape=input_shape)
 
-# def build_classifier():
-#     input_shape = (10, 640, 1)
-#     inputs = tf.keras.Input(shape=input_shape)
+    x = layers.Conv2D(filters=4, kernel_size=(8, 4), activation='relu', padding='same', kernel_regularizer=regularizers.l2(0.001))(inputs)
+    x = layers.BatchNormalization()(x)
 
-#     x = layers.Conv2D(filters=4, kernel_size=(8, 4), activation='relu', padding='same')(inputs)
-#     x = layers.BatchNormalization()(x)
+    x = layers.Conv2D(filters=8, kernel_size=(16, 8), activation='relu', padding='same', kernel_regularizer=regularizers.l2(0.001))(x)
+    x = layers.BatchNormalization()(x)
 
-#     x = layers.Conv2D(filters=8, kernel_size=(16, 8), activation='relu', padding='same')(x)
-#     x = layers.BatchNormalization()(x)
+    x = layers.Conv2D(filters=16, kernel_size=(32, 16), activation='relu', padding='same')(x)
+    x = layers.BatchNormalization()(x)
 
-#     x = layers.Conv2D(filters=16, kernel_size=(32, 16), activation='relu', padding='same')(x)
-#     x = layers.BatchNormalization()(x)
-
-#     x = layers.DepthwiseConv2D(kernel_size=(1, 32), activation='relu', padding='same')(x)
-#     x = layers.BatchNormalization()(x)
+    x = layers.DepthwiseConv2D(kernel_size=(1, 32), activation='relu', padding='same')(x)
+    x = layers.BatchNormalization()(x)
 
     
-#     x = layers.MaxPooling2D(pool_size=(4, 1), padding='same')(x)
+    x = layers.MaxPooling2D(pool_size=(4, 1), padding='same')(x)
 
-#     x = layers.Dropout(0.5)(x)
+    x = layers.Dropout(0.5)(x)
 
-#     x = layers.SeparableConv2D(filters=16, kernel_size=(4, 1), activation='relu', padding='same')(x)
-#     x = layers.BatchNormalization()(x)
+    x = layers.SeparableConv2D(filters=16, kernel_size=(4, 1), activation='relu', padding='same')(x)
+    x = layers.BatchNormalization()(x)
 
-#     x = layers.MaxPooling2D(pool_size=(8, 1), padding='same')(x)
+    x = layers.MaxPooling2D(pool_size=(8, 1), padding='same')(x)
 
-#     x = layers.Dropout(0.5)(x)
+    x = layers.Dropout(0.5)(x)
 
-#     x = layers.Flatten()(x)
+    x = layers.Flatten()(x)
 
-#     x = layers.Dense(24, activation='relu', kernel_regularizer=regularizers.l2(0.001))(x)
+    x = layers.Dense(24, activation='relu')(x)
 
-#     x = layers.Dropout(0.5)(x)
+    x = layers.Dropout(0.5)(x)
 
-#     outputs = layers.Dense(2, activation='softmax')(x)
+    outputs = layers.Dense(2, activation='softmax')(x)
 
-#     model = tf.keras.Model(inputs=inputs, outputs=outputs)
-#     return model
+    model = tf.keras.Model(inputs=inputs, outputs=outputs)
+    return model
 
 def run_experimenet(train_data, x_valid, y_valid, gan, epochs):
     model = build_classifier()
