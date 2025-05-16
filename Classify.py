@@ -12,6 +12,7 @@ from tensorflow import keras
 from keras import layers
 from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
+from keras import regularizers
 
 from models import build_classifier
 
@@ -23,6 +24,49 @@ import time
 
 MODELS_PATH = os.path.join(".", "models")
 os.makedirs(MODELS_PATH, exist_ok=True)
+IMAGE_PATH = os.path.join(".", "images")
+os.makedirs(IMAGE_PATH, exist_ok = True)
+
+
+
+# def build_classifier():
+#     input_shape = (10, 640, 1)
+#     inputs = tf.keras.Input(shape=input_shape)
+
+#     x = layers.Conv2D(filters=4, kernel_size=(8, 4), activation='relu', padding='same')(inputs)
+#     x = layers.BatchNormalization()(x)
+
+#     x = layers.Conv2D(filters=8, kernel_size=(16, 8), activation='relu', padding='same')(x)
+#     x = layers.BatchNormalization()(x)
+
+#     x = layers.Conv2D(filters=16, kernel_size=(32, 16), activation='relu', padding='same')(x)
+#     x = layers.BatchNormalization()(x)
+
+#     x = layers.DepthwiseConv2D(kernel_size=(1, 32), activation='relu', padding='same')(x)
+#     x = layers.BatchNormalization()(x)
+
+    
+#     x = layers.MaxPooling2D(pool_size=(4, 1), padding='same')(x)
+
+#     x = layers.Dropout(0.5)(x)
+
+#     x = layers.SeparableConv2D(filters=16, kernel_size=(4, 1), activation='relu', padding='same')(x)
+#     x = layers.BatchNormalization()(x)
+
+#     x = layers.MaxPooling2D(pool_size=(8, 1), padding='same')(x)
+
+#     x = layers.Dropout(0.5)(x)
+
+#     x = layers.Flatten()(x)
+
+#     x = layers.Dense(24, activation='relu', kernel_regularizer=regularizers.l2(0.001))(x)
+
+#     x = layers.Dropout(0.5)(x)
+
+#     outputs = layers.Dense(2, activation='softmax')(x)
+
+#     model = tf.keras.Model(inputs=inputs, outputs=outputs)
+#     return model
 
 def run_experimenet(train_data, x_valid, y_valid, gan, epochs):
     model = build_classifier()
@@ -56,6 +100,23 @@ def run_experimenet(train_data, x_valid, y_valid, gan, epochs):
     
     path = os.path.join(MODELS_PATH, "histories" + gan + str(epochs)+ ".csv")
     model_histories.to_csv(path, index = True)
+
+def plot_loss(name, title):
+    path = os.path.join(MODELS_PATH, name)
+    df = pd.read_csv(path)
+    #Selecting colums of interest
+    col_of_interest = ['Validation Loss']
+    #adding the data
+    plt.figure(figsize=(10, 6))
+    for col in col_of_interest: 
+        plt.plot(df[col], label= col)
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.title(title)
+    plt.legend(loc='upper center', ncol=3, fancybox=True)
+    path = os.path.join(IMAGE_PATH, title + ".svg")
+    plt.savefig(path, format = "svg")
+    plt.clf()
 
 
 def main():
@@ -114,10 +175,9 @@ def main():
         train_dataset = train_dataset.shuffle(1000).batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
         run_experimenet(train_dataset, x_valid, y_valid, gan_label, epochs)
-    elif args.experiment_type == "process":
-        pass
     else: 
-        pass
+        name = "historiesreal51.csv"
+        plot_loss(name, "Real Data CNN Training")
    
 
 if __name__ =="__main__":
