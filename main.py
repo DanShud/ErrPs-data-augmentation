@@ -1,5 +1,5 @@
 import argparse
-import models
+import models_copy
 import tensorflow as tf 
 from tensorflow.keras import layers, Model, Input
 import os
@@ -15,8 +15,8 @@ DATA_DIR = './'
 POS = False
 OUTPUT = './'
 
-generator = models.build_generator()
-critic = models.build_critic()
+generator = models_copy.build_generator()
+critic = models_copy.build_critic()
 # ### followed : https://www.tensorflow.org/tutorials/generative/dcgan
 
 
@@ -181,21 +181,20 @@ def w_critic_loss(real_output, fake_output):
 def w_generator_loss(fake_output):
     # Generator wants to fool critic into thinking fakes are real
     return -tf.reduce_mean(fake_output)
+def gradient_penalty(critic, real, fake, batch_size):
 
-def gradient_penalty(critic, real, fake):
-    batch_size = tf.shape(real)[0]
-    alpha = tf.random.uniform([batch_size, 1, 1, 1], 0.0, 1.0)
+    
+    alpha = tf.random.uniform([batch_size, 1, 1, 1], 0., 1.)
+    interpolated = real + alpha * (fake - real)
 
-    interpolated = alpha * real + (1 - alpha) * fake
-    with tf.GradientTape() as tape:
-        tape.watch(interpolated)
+    with tf.GradientTape() as gp_tape:
+        gp_tape.watch(interpolated)
         pred = critic(interpolated, training=True)
 
-    grads = tape.gradient(pred, [interpolated])[0]
-    # Flatten gradients per sample
-    grads = tf.reshape(grads, [batch_size, -1])
-    gp = tf.reduce_mean((tf.norm(grads, axis=1) - 1.0) ** 2)
-    print("gp_output",gp)
+    grads = gp_tape.gradient(pred, [interpolated])[0]
+    grads = tf.reshape(grads, [grads.shape[0], -1])
+    norm = tf.norm(grads, axis=1)
+    gp = tf.reduce_mean((norm - 1.0) ** 2)
     return gp
 
 generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.0, beta_2=0.9)
@@ -205,29 +204,36 @@ critic_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.0, beta_2=0.9)
 
 
 LAMBDA_GP = 10.0  # Gradient penalty coefficient
-
 @tf.function
-def train_step(images):
+def train_step(real_images):
     global generator_optimizer 
     global critic_optimizer
+
+    real_images = tf.reshape(real_images, [-1, 10, 640, 1])
+    batch_size = tf.shape(real_images)[0]  #handles last batc
+    noise = tf.random.normal([batch_size, noise_dim])
+
+    for _ in range(5):  # 5 critic steps per generator step
+        with tf.GradientTape() as critic_tape:
+            fake_images = generator(noise, training=True)
+            real_output = critic(real_images, training=True)
+            fake_output = critic(fake_images, training=True)
+            gp = gradient_penalty(critic, real_images, fake_images, batch_size)
+            critic_loss_val = w_critic_loss(real_output, fake_output) + LAMBDA_GP * gp
+
+        critic_grads = critic_tape.gradient(critic_loss_val, critic.trainable_variables)
+        critic_optimizer.apply_gradients(zip(critic_grads, critic.trainable_variables))
+
     noise = tf.random.normal([BATCH_SIZE, noise_dim])
-    images = tf.reshape(images, [-1, 10, 640,1])
-    with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
-      generated_images = generator(noise, training=True)
-      real_output = critic(images, training=True)
+    with tf.GradientTape() as gen_tape:
+        generated_images = generator(noise, training=True)
+        fake_output = critic(generated_images, training=True)
+        gen_loss_val = w_generator_loss(fake_output)
 
-      fake_output = critic(generated_images, training=True)
-    #   gp = gradient_penalty(critic, images, generated_images)
-      gen_loss = generator_loss(fake_output) 
-      disc_loss = critic_loss(real_output, fake_output) #+ LAMBDA_GP * gp
+    gen_grads = gen_tape.gradient(gen_loss_val, generator.trainable_variables)
+    generator_optimizer.apply_gradients(zip(gen_grads, generator.trainable_variables))
 
-    gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
-    gradients_of_discriminator = disc_tape.gradient(disc_loss, critic.trainable_variables)
-
-    generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
-    critic_optimizer.apply_gradients(zip(gradients_of_discriminator, critic.trainable_variables))
-    return gen_loss, disc_loss
-
+    return gen_loss_val, critic_loss_val
 # ## Training loop
 
 def normalize_flattened_batch(image_batch, mins, maxes):
@@ -264,7 +270,6 @@ def train(dataset, epochs,mins = None, maxes = None):
 
         gen_loss, disc_loss = 0,0
         for idx, image_batch in enumerate(dataset):
-            # print("batch: ", idx)
             data = image_batch[0]
             if mins is not None:
                 data = normalize_flattened_batch(data, mins, maxes)
@@ -277,10 +282,10 @@ def train(dataset, epochs,mins = None, maxes = None):
         if (epoch + 1) % 15 == 0:
             checkpoint.save(file_prefix =  str(epoch) +"_"+ checkpoint_prefix)
 
-        print ('Time for epoch {} is {} sec gen loss {} disc loss {}'.format(epoch + 1, time.time()-start, gen_loss, disc_loss))
+        print ('Time for epoch {} is {} sec gen loss {} disc loss {}\n'.format(epoch + 1, time.time()-start, gen_loss, disc_loss))
 
         with open(os.path.join(OUTPUT,"gan_log.txt"),'a+') as f:
-            f.write('Time for epoch {} is {} sec gen loss {} disc loss {}'.format(epoch + 1, time.time()-start, gen_loss, disc_loss))
+            f.write('Time for epoch {} is {} sec gen loss {} disc loss {}\n'.format(epoch + 1, time.time()-start, gen_loss, disc_loss))
 
 
         generator.save(os.path.join(OUTPUT, "generator.keras"))
